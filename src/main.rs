@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 use std::fs::File;
-use std::io::{BufReader, ErrorKind};
 use std::io::Read;
+use std::io::{BufReader, ErrorKind};
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -14,7 +14,7 @@ const CELL_H: u32 = 16; // in pixels
 const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
 const INSTRUCTIONS_PER_TICK: u32 = 1;
-const FPS: u32 = 5;
+const FPS: u32 = 2;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -75,9 +75,9 @@ impl Chip8 {
         let file = File::open(path).expect("Cannot Read ROM");
         let mut buf = BufReader::new(file);
 
-        let mut rom_bytes = [0; (0x1000-RAM_OFFSET as usize)];
+        let mut rom_bytes = [0; (0x1000 - RAM_OFFSET as usize)];
         match buf.read(&mut rom_bytes) {
-            Ok(0) => (println!{"No bytes read from ROM!"}),
+            Ok(0) => (println! {"No bytes read from ROM!"}),
             Ok(n) => {
                 for i in 0..n {
                     chip8.ram[RAM_OFFSET as usize + i] = rom_bytes[i]
@@ -105,9 +105,7 @@ impl Chip8 {
         self.vram[y] & (1 << x) == (1 << x)
     }
 
-    fn nop (&mut self) {
-
-    }
+    fn nop(&mut self) {}
 
     /****************\
      * Instructions *
@@ -258,8 +256,8 @@ impl Chip8 {
         let mut erased = false;
         for y in 0..(lit & 0b0000_1111) {
             let spriterow = self.ram[self.registers.i as usize + y as usize];
-            for x in 0..7 {
-                let xpos = (self.registers.vx[vx as usize] + x) as u32 % CHIP8_DISP_W;
+            for x in 0..8 {
+                let xpos = (self.registers.vx[vx as usize] + (8 - x)) as u32 % CHIP8_DISP_W;
                 let ypos = (self.registers.vx[vy as usize] + y) as u32 % CHIP8_DISP_H;
                 let source_bit = (spriterow >> x) & 0b1;
                 let dest_bit = (self.vram[ypos as usize] >> xpos) & 0b1;
@@ -354,7 +352,6 @@ impl Chip8 {
                 self.registers.pc = 0x0200;
             }
         }
-
 
         if self.registers.dt > 0 {
             self.registers.dt -= 1;
@@ -482,17 +479,6 @@ pub fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
 
     let mut chip8 = Chip8::new("Roms/IBM Logo.ch8".to_string());
-
-    /*
-    chip8.set_vram_bit(0, 0, true);
-    chip8.set_vram_bit(1, 1, true);
-    chip8.set_vram_bit(4, 2, true);
-    let mut vram: [u64; CHIP8_DISP_H as usize] = [0; CHIP8_DISP_H as usize];
-    vram[0] = vram[0] | 1u64;
-    vram[1] = vram[1] | 2u64;
-    vram[2] = vram[2] | 3u64;
-    vram[3] = vram[3] | 4u64;
-    */
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {

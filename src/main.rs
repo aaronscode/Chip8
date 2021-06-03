@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::{BufReader, ErrorKind};
 
+use rand;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -13,8 +14,8 @@ const CELL_W: u32 = 16; // in pixels
 const CELL_H: u32 = 16; // in pixels
 const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
-const INSTRUCTIONS_PER_TICK: u32 = 1;
-const FPS: u32 = 2;
+const INSTRUCTIONS_PER_TICK: u32 = 5;
+const FPS: u32 = 60;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -103,6 +104,14 @@ impl Chip8 {
 
     fn get_vram_bit(&self, x: usize, y: usize) -> bool {
         self.vram[y] & (1 << x) == (1 << x)
+    }
+
+    fn keydown(&mut self, key: u16) {
+        self.keyboard |= key;
+    }
+
+    fn keyup(&mut self, key: u16) {
+        self.keyboard &= !(key);
     }
 
     fn nop(&mut self) {}
@@ -248,7 +257,7 @@ impl Chip8 {
     }
 
     fn rnd(&mut self, vx: Greg, lit: u8) {
-        let val = 212;
+        let val: u8 = rand::random();
         self.registers.vx[vx as usize] = lit & val;
     }
 
@@ -360,6 +369,8 @@ impl Chip8 {
         if self.registers.st > 0 {
             self.registers.st -= 1;
         }
+
+        self.previous_keyboard = self.keyboard;
     }
 
     fn instruction_dispatch(&mut self, upper: u8, lower: u8) {
@@ -367,7 +378,7 @@ impl Chip8 {
         let nibble2 = upper & 0b0000_1111;
         let nibble3 = (lower & 0b1111_0000) >> 4;
         let nibble4 = lower & 0b0000_1111;
-        println!("{:#x} {:#x}", upper, lower);
+        //println!("{:#x} {:#x}", upper, lower);
         match (nibble1, nibble2, nibble3, nibble4) {
             (0x0, 0x0, 0x0, 0x0) => self.nop(),
             (0x0, 0x0, 0xe, 0x0) => self.cls(),
@@ -478,7 +489,11 @@ pub fn main() {
 
     let mut canvas = window.into_canvas().build().unwrap();
 
-    let mut chip8 = Chip8::new("Roms/IBM Logo.ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/IBM Logo.ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/Maze [David Winter, 199x].ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/Chip8 Picture.ch8".to_string());
+    let mut chip8 =
+        Chip8::new("/home/aaron/Rustlang/chip8/Roms/Keypad Test [Hap, 2006].ch8".to_string());
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -511,6 +526,134 @@ pub fn main() {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Num1),
+                    ..
+                } => chip8.keydown(0b0000_0000_0000_0001),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Num2),
+                    ..
+                } => chip8.keydown(0b0000_0000_0000_0010),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Num3),
+                    ..
+                } => chip8.keydown(0b0000_0000_0000_0100),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Num4),
+                    ..
+                } => chip8.keydown(0b0000_0000_0000_1000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => chip8.keydown(0b0000_0000_0001_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::W),
+                    ..
+                } => chip8.keydown(0b0000_0000_0010_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::E),
+                    ..
+                } => chip8.keydown(0b0000_0000_0100_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::R),
+                    ..
+                } => chip8.keydown(0b0000_0000_1000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::A),
+                    ..
+                } => chip8.keydown(0b0000_0001_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => chip8.keydown(0b0000_0010_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::D),
+                    ..
+                } => chip8.keydown(0b0000_0100_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::F),
+                    ..
+                } => chip8.keydown(0b0000_1000_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => chip8.keydown(0b0001_0000_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::X),
+                    ..
+                } => chip8.keydown(0b0010_0000_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::C),
+                    ..
+                } => chip8.keydown(0b0100_0000_0000_0000),
+                Event::KeyDown {
+                    keycode: Some(Keycode::V),
+                    ..
+                } => chip8.keydown(0b1000_0000_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::Num1),
+                    ..
+                } => chip8.keyup(0b0000_0000_0000_0001),
+                Event::KeyUp {
+                    keycode: Some(Keycode::Num2),
+                    ..
+                } => chip8.keyup(0b0000_0000_0000_0010),
+                Event::KeyUp {
+                    keycode: Some(Keycode::Num3),
+                    ..
+                } => chip8.keyup(0b0000_0000_0000_0100),
+                Event::KeyUp {
+                    keycode: Some(Keycode::Num4),
+                    ..
+                } => chip8.keyup(0b0000_0000_0000_1000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::Q),
+                    ..
+                } => chip8.keyup(0b0000_0000_0001_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::W),
+                    ..
+                } => chip8.keyup(0b0000_0000_0010_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::E),
+                    ..
+                } => chip8.keyup(0b0000_0000_0100_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::R),
+                    ..
+                } => chip8.keyup(0b0000_0000_1000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::A),
+                    ..
+                } => chip8.keyup(0b0000_0001_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => chip8.keyup(0b0000_0010_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::D),
+                    ..
+                } => chip8.keyup(0b0000_0100_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::F),
+                    ..
+                } => chip8.keyup(0b0000_1000_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::Z),
+                    ..
+                } => chip8.keyup(0b0001_0000_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::X),
+                    ..
+                } => chip8.keyup(0b0010_0000_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::C),
+                    ..
+                } => chip8.keyup(0b0100_0000_0000_0000),
+                Event::KeyUp {
+                    keycode: Some(Keycode::V),
+                    ..
+                } => chip8.keyup(0b1000_0000_0000_0000),
                 _ => {}
             }
         }

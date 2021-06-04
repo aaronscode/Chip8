@@ -14,8 +14,9 @@ const CELL_W: u32 = 16; // in pixels
 const CELL_H: u32 = 16; // in pixels
 const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
-const INSTRUCTIONS_PER_TICK: u32 = 5;
-const FPS: u32 = 60;
+const DEBUG: bool = true;
+const INSTRUCTIONS_PER_TICK: u32 = 1;
+const FPS: u32 = 6;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -139,7 +140,7 @@ impl Chip8 {
     fn call(&mut self, addr: Address) {
         self.registers.sp += 1;
         self.stack[self.registers.sp as usize] = self.registers.pc;
-        self.registers.pc = addr;
+        self.registers.pc = addr - 2;
     }
 
     // skip next instruction if reg is equal to byte
@@ -168,7 +169,8 @@ impl Chip8 {
     }
 
     fn add_byte(&mut self, vx: Greg, lit: u8) {
-        self.registers.vx[vx as usize] += lit;
+        let reg_val = self.registers.vx[vx as usize];
+        self.registers.vx[vx as usize] = reg_val.wrapping_add(lit);
     }
 
     fn ld_reg(&mut self, vx: Greg, vy: Greg) {
@@ -266,7 +268,11 @@ impl Chip8 {
         for y in 0..(lit & 0b0000_1111) {
             let spriterow = self.ram[self.registers.i as usize + y as usize];
             for x in 0..8 {
-                let xpos = (self.registers.vx[vx as usize] + (8 - x)) as u32 % CHIP8_DISP_W;
+                println!(
+                    "x: {}, vx: {}, {:#04x}",
+                    x, vx, self.registers.vx[vx as usize]
+                );
+                let xpos = (self.registers.vx[vx as usize] as u32 + (8 - x) as u32) as u32 % CHIP8_DISP_W;
                 let ypos = (self.registers.vx[vy as usize] + y) as u32 % CHIP8_DISP_H;
                 let source_bit = (spriterow >> x) & 0b1;
                 let dest_bit = (self.vram[ypos as usize] >> xpos) & 0b1;
@@ -301,6 +307,7 @@ impl Chip8 {
     }
 
     fn ld_k(&mut self, vx: Greg) {
+        //println!("Inside ld_k");
         let mut key_pressed = self.keyboard & (self.keyboard ^ self.previous_keyboard);
         if key_pressed != 0 {
             let mut key: u8 = 0;
@@ -312,6 +319,7 @@ impl Chip8 {
         } else {
             self.registers.pc -= 2;
         }
+        self.previous_keyboard = self.keyboard;
     }
 
     fn ld_dt_vx(&mut self, vx: Greg) {
@@ -338,15 +346,15 @@ impl Chip8 {
 
     // store registers v0-vx in memory starting at address I
     fn ld_s(&mut self, vx: Greg) {
-        for x in 0..vx {
-            self.ram[(self.registers.i + x as u16) as usize] = self.registers.vx[vx as usize];
+        for x in 0..vx+1 {
+            self.ram[(self.registers.i + x as u16) as usize] = self.registers.vx[x as usize];
         }
     }
 
     // read registers v0-vx from memory starting at address I
     fn ld_r(&mut self, vx: Greg) {
-        for x in 0..vx {
-            self.registers.vx[vx as usize] = self.ram[(self.registers.i + x as u16) as usize];
+        for x in 0..vx+1 {
+            self.registers.vx[x as usize] = self.ram[(self.registers.i + x as u16) as usize];
         }
     }
 
@@ -369,8 +377,6 @@ impl Chip8 {
         if self.registers.st > 0 {
             self.registers.st -= 1;
         }
-
-        self.previous_keyboard = self.keyboard;
     }
 
     fn instruction_dispatch(&mut self, upper: u8, lower: u8) {
@@ -378,7 +384,18 @@ impl Chip8 {
         let nibble2 = upper & 0b0000_1111;
         let nibble3 = (lower & 0b1111_0000) >> 4;
         let nibble4 = lower & 0b0000_1111;
-        //println!("{:#x} {:#x}", upper, lower);
+        if DEBUG {
+            let decomp = self.decompile(nibble1, nibble2, nibble3, nibble4);
+            println!(
+                "op: {:#06x} {:<15}, pc: {:#06x}, I: {:#06x}, key: {:#018b}, vx: {:?}",
+                ((upper as u16) << 8) | lower as u16,
+                decomp,
+                self.registers.pc,
+                self.registers.i,
+                self.keyboard,
+                self.registers.vx
+            );
+        }
         match (nibble1, nibble2, nibble3, nibble4) {
             (0x0, 0x0, 0x0, 0x0) => self.nop(),
             (0x0, 0x0, 0xe, 0x0) => self.cls(),
@@ -434,7 +451,7 @@ impl Chip8 {
             (0x8, x, y, 0x7) => {
                 self.subn(x, y);
             }
-            (0x8, x, _, 0x8) => {
+            (0x8, x, _, 0xe) => {
                 self.shl(x);
             }
             (0x9, x, y, 0x0) => {
@@ -471,7 +488,134 @@ impl Chip8 {
             }
         };
     }
+
+    fn decompile (&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        let decomp = match (n1, n2, n3, n4) {
+            (0x0, 0x0, 0xe, 0x0) => self.decompile_NNNN(n1, n2, n3, n4),
+            (0x0, 0x0, 0xe, 0xe) => self.decompile_NNNN(n1, n2, n3, n4),
+            (0x1, _, _, _) => self.decompile_Nnnn(n1, n2, n3, n4),
+            (0x2, _, _, _) => self.decompile_Nnnn(n1, n2, n3, n4),
+            (0x3, _, _, _) => self.decompile_Nxkk(n1, n2, n3, n4),
+            (0x4, _, _, _) => self.decompile_Nxkk(n1, n2, n3, n4),
+            (0x5, _, _, 0x0) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x6, _, _, _) => self.decompile_Nxkk(n1, n2, n3, n4),
+            (0x7, _, _, _) => self.decompile_Nxkk(n1, n2, n3, n4),
+            (0x8, _, _, 0x0) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x1) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x2) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x3) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x4) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x5) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x6) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0x7) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x8, _, _, 0xe) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0x9, _, _, 0x0) => self.decompile_NxyN(n1, n2, n3, n4),
+            (0xa, _, _, _) => self.decompile_Nnnn(n1, n2, n3, n4),
+            (0xb, _, _, _) => self.decompile_Nnnn(n1, n2, n3, n4),
+            (0xc, _, _, _) => self.decompile_Nxkk(n1, n2, n3, n4),
+            (0xd, _, _, _) => self.decompile_Nxyn(n1, n2, n3, n4),
+            (0xe, _, 0x9, 0xe) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xe, _, 0xa, 0x1) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x0, 0x7) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x0, 0xa) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x1, 0x5) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x1, 0x8) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x1, 0xe) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x2, 0x9) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x3, 0x3) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x5, 0x5) => self.decompile_NxNN(n1, n2, n3, n4),
+            (0xf, _, 0x6, 0x5) => self.decompile_NxNN(n1, n2, n3, n4),
+            (_, _, _, _) => {
+                "Unrecognized opcode: {:#x} {:#x}".to_string()
+            }
+        };
+        decomp
+    }
+
+    fn decompile_Nnnn(&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        let instruction = match n1 {
+            0x1 => "JP",
+            0x2 => "CALL",
+            0xa => "Ld I,",
+            0xb => "Jp V0,",
+            _ => "Unrecognized",
+        };
+        let address = ((n2 as u16) << 8) | ((n3 as u16) << 4) | n4 as u16;
+        format!("{} {:#06x}", instruction, address)
+    }
+
+    fn decompile_Nxkk(&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        let instruction = match n1 {
+            0x3 => "SE",
+            0x4 => "SNE",
+            0x6 => "LD",
+            0x7 => "ADD",
+            0xC => "RND",
+            _ => "Unrecognized",
+        };
+        let register = n2;
+        let byte = (n3 << 4) | n4;
+        format!("{} v{}, {:#04x}", instruction, register, byte)
+    }
+
+    fn decompile_NNNN(&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        match (n1, n2, n3, n4) {
+            (0x0, 0x0, 0xe, 0x0) => "CLS".to_string(),
+            (0x0, 0x0, 0xe, 0xe) => "RET".to_string(),
+            _ => "Unrecognized".to_string(),
+        }
+    }
+
+    fn decompile_NxyN(&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        let instruction = match (n1, n4) {
+            (0x5, 0x0) => "SE",
+            (0x8, 0x0) => "LD",
+            (0x8, 0x1) => "OR",
+            (0x8, 0x2) => "AND",
+            (0x8, 0x3) => "XOR",
+            (0x8, 0x4) => "ADD",
+            (0x8, 0x5) => "SUB",
+            (0x8, 0x6) => "SHR",
+            (0x8, 0x7) => "SUBN",
+            (0x8, 0xe) => "SHL",
+            (0x9, 0x0) => "SNE",
+
+            _ => "Unrecognized",
+        };
+        let r1 = n2;
+        let r2 = n3;
+        format!("{} v{}, v{}", instruction, r1, r2)
+    }
+
+    fn decompile_Nxyn(&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        let instruction = match n1 {
+            0xD => "DRW",
+            _ => "Unrecognized",
+        };
+        let r1 = n2;
+        let r2 = n3;
+        format!("{} v{}, v{}, {:#03x}", instruction, r1, r2, n4)
+    }
+
+    fn decompile_NxNN(&self, n1: u8, n2: u8, n3: u8, n4: u8) -> String {
+        let r1 = n2;
+        let instruction = match (n1, n3, n4) {
+            (0xe, 0x9, 0xe) => format!("SKP v{}", r1),
+            (0xe, 0xa, 0x1) => format!("SKNP v{}", r1),
+            (0xf, 0x0, 0xa) => format!("LD v{}, DT", r1),
+            (0xf, 0x1, 0x5) => format!("LD DT, v{}", r1),
+            (0xf, 0x1, 0x8) => format!("LD ST, v{}", r1),
+            (0xf, 0x1, 0xe) => format!("ADD I, v{}", r1),
+            (0xf, 0x2, 0x9) => format!("LD F, v{}", r1),
+            (0xf, 0x3, 0x3) => format!("LD B, v{}", r1),
+            (0xf, 0x5, 0x5) => format!("LD [I], v{}", r1),
+            (0xf, 0x6, 0x5) => format!("LD v{}, [I]", r1),
+            _ => "Unrecognized".to_string(),
+        };
+        instruction
+    }
 }
+
 
 pub fn main() {
     let sdl_context = sdl2::init().unwrap();
@@ -492,8 +636,8 @@ pub fn main() {
     //let mut chip8 = Chip8::new("Roms/IBM Logo.ch8".to_string());
     //let mut chip8 = Chip8::new("Roms/Maze [David Winter, 199x].ch8".to_string());
     //let mut chip8 = Chip8::new("Roms/Chip8 Picture.ch8".to_string());
-    let mut chip8 =
-        Chip8::new("/home/aaron/Rustlang/chip8/Roms/Keypad Test [Hap, 2006].ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/Chip8 emulator Logo [Garstyciuks].ch8".to_string());
+    let mut chip8 = Chip8::new("Roms/Keypad Test [Hap, 2006].ch8".to_string());
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {

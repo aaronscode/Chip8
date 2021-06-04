@@ -15,8 +15,8 @@ const CELL_H: u32 = 16; // in pixels
 const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
 const DEBUG: bool = true;
-const INSTRUCTIONS_PER_TICK: u32 = 1;
-const FPS: u32 = 6;
+const INSTRUCTIONS_PER_TICK: u32 = 100;
+const FPS: u32 = 60;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -673,19 +673,19 @@ pub fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::Num1),
                     ..
-                } => chip8.keydown(0b0000_0000_0000_0001),
+                } => chip8.keydown(0b0000_0000_0000_0010),
                 Event::KeyDown {
                     keycode: Some(Keycode::Num2),
                     ..
-                } => chip8.keydown(0b0000_0000_0000_0010),
+                } => chip8.keydown(0b0000_0000_0000_0100),
                 Event::KeyDown {
                     keycode: Some(Keycode::Num3),
                     ..
-                } => chip8.keydown(0b0000_0000_0000_0100),
+                } => chip8.keydown(0b0000_0000_0000_1000),
                 Event::KeyDown {
                     keycode: Some(Keycode::Num4),
                     ..
-                } => chip8.keydown(0b0000_0000_0000_1000),
+                } => chip8.keydown(0b0000_1000_0000_0000),
                 Event::KeyDown {
                     keycode: Some(Keycode::Q),
                     ..
@@ -725,7 +725,7 @@ pub fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::X),
                     ..
-                } => chip8.keydown(0b0010_0000_0000_0000),
+                } => chip8.keydown(0b0000_0000_0000_0001),
                 Event::KeyDown {
                     keycode: Some(Keycode::C),
                     ..
@@ -737,11 +737,11 @@ pub fn main() {
                 Event::KeyUp {
                     keycode: Some(Keycode::Num1),
                     ..
-                } => chip8.keyup(0b0000_0000_0000_0001),
+                } => chip8.keyup(0b0000_0000_0000_0100),
                 Event::KeyUp {
                     keycode: Some(Keycode::Num2),
                     ..
-                } => chip8.keyup(0b0000_0000_0000_0010),
+                } => chip8.keyup(0b0000_0000_0000_0100),
                 Event::KeyUp {
                     keycode: Some(Keycode::Num3),
                     ..

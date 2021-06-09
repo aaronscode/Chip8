@@ -16,7 +16,7 @@ const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
 const DEBUG: bool = true;
 const INSTRUCTIONS_PER_TICK: u32 = 100;
-const FPS: u32 = 60;
+const FPS: u32 = 1;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -190,27 +190,30 @@ impl Chip8 {
     }
 
     fn add_reg(&mut self, vx: Greg, vy: Greg) {
-        let vx: usize = self.registers.vx[vx as usize] as usize;
-        let vy: usize = self.registers.vx[vy as usize] as usize;
-        if vx + vy > 255 {
+        let x: usize = self.registers.vx[vx as usize] as usize;
+        let y: usize = self.registers.vx[vy as usize] as usize;
+        if x + y > 255 {
             self.registers.vx[0xfusize] = 1;
         } else {
             self.registers.vx[0xfusize] = 0;
         }
+        let tmp = self.registers.vx[vx as usize];
 
-        self.registers.vx[vx as usize] += self.registers.vx[vy as usize];
+        self.registers.vx[vx as usize] = tmp.wrapping_add(self.registers.vx[vy as usize]);
     }
 
     fn sub_reg(&mut self, vx: Greg, vy: Greg) {
-        let vx: usize = self.registers.vx[vx as usize] as usize;
-        let vy: usize = self.registers.vx[vy as usize] as usize;
-        if vx > vy {
+        let x: usize = self.registers.vx[vx as usize] as usize;
+        let y: usize = self.registers.vx[vy as usize] as usize;
+        if x > y {
             self.registers.vx[0xfusize] = 1;
         } else {
             self.registers.vx[0xfusize] = 0;
         }
 
-        self.registers.vx[vx as usize] -= self.registers.vx[vy as usize];
+        let tmp = self.registers.vx[vx as usize];
+
+        self.registers.vx[vx as usize] = tmp.wrapping_sub(self.registers.vx[vy as usize]);
     }
 
     fn shr(&mut self, vx: Greg) {
@@ -268,10 +271,12 @@ impl Chip8 {
         for y in 0..(lit & 0b0000_1111) {
             let spriterow = self.ram[self.registers.i as usize + y as usize];
             for x in 0..8 {
+                /*
                 println!(
                     "x: {}, vx: {}, {:#04x}",
                     x, vx, self.registers.vx[vx as usize]
                 );
+                */
                 let xpos =
                     (self.registers.vx[vx as usize] as u32 + (8 - x) as u32) as u32 % CHIP8_DISP_W;
                 let ypos = (self.registers.vx[vy as usize] + y) as u32 % CHIP8_DISP_H;
@@ -387,11 +392,13 @@ impl Chip8 {
         if DEBUG {
             let decomp = self.decompile(nibble1, nibble2, nibble3, nibble4);
             println!(
-                "op: {:#06x} {:<15}, pc: {:#06x}, I: {:#06x}, key: {:#018b}, vx: {:?}",
+                "op: {:#06x} {:<15}, pc: {:#06x}, I: {:#06x}, dt: {}, st: {}, key: {:#018b}, vx: {:?}",
                 ((upper as u16) << 8) | lower as u16,
                 decomp,
                 self.registers.pc,
                 self.registers.i,
+                self.registers.dt,
+                self.registers.st,
                 self.keyboard,
                 self.registers.vx
             );
@@ -621,8 +628,8 @@ pub fn main() {
     let window = video_subsystem
         .window(
             "Chip-8 Emulator",
-            CELL_W * CHIP8_DISP_W,
-            CELL_H * CHIP8_DISP_H,
+            CELL_W * (CHIP8_DISP_W + 1),
+            CELL_H * (CHIP8_DISP_H + 1),
         )
         .position_centered()
         .build()
@@ -634,7 +641,10 @@ pub fn main() {
     //let mut chip8 = Chip8::new("Roms/Maze [David Winter, 199x].ch8".to_string());
     //let mut chip8 = Chip8::new("Roms/Chip8 Picture.ch8".to_string());
     //let mut chip8 = Chip8::new("Roms/Chip8 emulator Logo [Garstyciuks].ch8".to_string());
-    let mut chip8 = Chip8::new("Roms/Keypad Test [Hap, 2006].ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/Keypad Test [Hap, 2006].ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/chip8-test-rom.ch8".to_string());
+    //let mut chip8 = Chip8::new("Roms/Breakout [Carmelo Cortez, 1979].ch8".to_string());
+    let mut chip8 = Chip8::new("Roms/Brix [Andreas Gustafsson, 1990].ch8".to_string());
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {

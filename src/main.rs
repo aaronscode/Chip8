@@ -15,8 +15,7 @@ const CELL_H: u32 = 16; // in pixels
 const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
 const DEBUG: bool = true;
-const INSTRUCTIONS_PER_TICK: u32 = 10;
-const FPS: u32 = 3;
+const FPS: u32 = 60;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -57,6 +56,7 @@ struct Chip8 {
     stack: [u16; 16],
     keyboard: u16,
     previous_keyboard: u16,
+    draw_flag: bool,
 }
 
 impl Chip8 {
@@ -68,6 +68,7 @@ impl Chip8 {
             stack: [0u16; 16],
             keyboard: 0x00,
             previous_keyboard: 0x00,
+            draw_flag: false,
         };
         // load font into RAM
         for i in 0..80 {
@@ -274,10 +275,12 @@ impl Chip8 {
                 let xpos =
                     (self.registers.vx[vx as usize] as u32 + (7 - x) as u32) as u32 % (CHIP8_DISP_W);
                 let ypos = (self.registers.vx[vy as usize] + y) as u32 % (CHIP8_DISP_H);
+                /*
                 println!(
                     "x: {}, vx: {}, {:#04x}, xpos: {}, ypos: {}",
                     x, vx, self.registers.vx[vx as usize], xpos, ypos
                 );
+                */
                 let source_bit = (spriterow >> x) & 0b1;
                 let dest_bit = (self.vram[ypos as usize] >> xpos) & 0b1;
                 erased = erased || (source_bit == 1 && dest_bit == 1);
@@ -290,6 +293,7 @@ impl Chip8 {
         } else {
             self.registers.vx[0xfusize] = 0;
         }
+        self.draw_flag = true;
     }
 
     fn skp(&mut self, vx: Greg) {
@@ -360,9 +364,13 @@ impl Chip8 {
             self.registers.vx[x as usize] = self.ram[(self.registers.i + x as u16) as usize];
         }
     }
+    
+    fn timers_active(&self) -> bool {
+        self.registers.dt > 0 || self.registers.st > 0
+    }
 
     fn tick(&mut self) {
-        for _ in 0..INSTRUCTIONS_PER_TICK {
+        while !self.draw_flag {
             self.instruction_dispatch(
                 self.ram[self.registers.pc as usize],
                 self.ram[(self.registers.pc + 1) as usize],
@@ -370,6 +378,9 @@ impl Chip8 {
             self.registers.pc += 2;
             if self.registers.pc >= 0x0fff {
                 self.registers.pc = 0x0200;
+            }
+            if self.timers_active() {
+                break;
             }
         }
 
@@ -380,6 +391,8 @@ impl Chip8 {
         if self.registers.st > 0 {
             self.registers.st -= 1;
         }
+
+        self.draw_flag = false;
     }
 
     fn instruction_dispatch(&mut self, upper: u8, lower: u8) {

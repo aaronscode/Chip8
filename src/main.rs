@@ -15,7 +15,7 @@ const CELL_H: u32 = 16; // in pixels
 const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
 const DEBUG: bool = true;
-const INSTRUCTIONS_PER_TICK: u32 = 100;
+const INSTRUCTIONS_PER_TICK: u32 = 10;
 const FPS: u32 = 1;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
@@ -271,12 +271,10 @@ impl Chip8 {
         for y in 0..(lit & 0b0000_1111) {
             let spriterow = self.ram[self.registers.i as usize + y as usize];
             for x in 0..8 {
-                /*
                 println!(
                     "x: {}, vx: {}, {:#04x}",
                     x, vx, self.registers.vx[vx as usize]
                 );
-                */
                 let xpos =
                     (self.registers.vx[vx as usize] as u32 + (8 - x) as u32) as u32 % CHIP8_DISP_W;
                 let ypos = (self.registers.vx[vy as usize] + y) as u32 % CHIP8_DISP_H;
@@ -607,7 +605,8 @@ impl Chip8 {
         let instruction = match (n1, n3, n4) {
             (0xe, 0x9, 0xe) => format!("SKP v{}", r1),
             (0xe, 0xa, 0x1) => format!("SKNP v{}", r1),
-            (0xf, 0x0, 0xa) => format!("LD v{}, DT", r1),
+            (0xf, 0x0, 0x7) => format!("LD v{}, DT", r1),
+            (0xf, 0x0, 0xa) => format!("LD v{}, K", r1),
             (0xf, 0x1, 0x5) => format!("LD DT, v{}", r1),
             (0xf, 0x1, 0x8) => format!("LD ST, v{}", r1),
             (0xf, 0x1, 0xe) => format!("ADD I, v{}", r1),

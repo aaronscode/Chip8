@@ -16,7 +16,7 @@ const CHIP8_DISP_W: u32 = 64; // in cells (chip8 pixels)
 const CHIP8_DISP_H: u32 = 32; // in cells (chip8 pixels)
 const DEBUG: bool = true;
 const INSTRUCTIONS_PER_TICK: u32 = 10;
-const FPS: u32 = 1;
+const FPS: u32 = 3;
 const RAM_OFFSET: u16 = 0x0200; // offset in the ram where user programs start
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -271,13 +271,13 @@ impl Chip8 {
         for y in 0..(lit & 0b0000_1111) {
             let spriterow = self.ram[self.registers.i as usize + y as usize];
             for x in 0..8 {
-                println!(
-                    "x: {}, vx: {}, {:#04x}",
-                    x, vx, self.registers.vx[vx as usize]
-                );
                 let xpos =
-                    (self.registers.vx[vx as usize] as u32 + (8 - x) as u32) as u32 % CHIP8_DISP_W;
-                let ypos = (self.registers.vx[vy as usize] + y) as u32 % CHIP8_DISP_H;
+                    (self.registers.vx[vx as usize] as u32 + (7 - x) as u32) as u32 % (CHIP8_DISP_W);
+                let ypos = (self.registers.vx[vy as usize] + y) as u32 % (CHIP8_DISP_H);
+                println!(
+                    "x: {}, vx: {}, {:#04x}, xpos: {}, ypos: {}",
+                    x, vx, self.registers.vx[vx as usize], xpos, ypos
+                );
                 let source_bit = (spriterow >> x) & 0b1;
                 let dest_bit = (self.vram[ypos as usize] >> xpos) & 0b1;
                 erased = erased || (source_bit == 1 && dest_bit == 1);
@@ -627,8 +627,8 @@ pub fn main() {
     let window = video_subsystem
         .window(
             "Chip-8 Emulator",
-            CELL_W * (CHIP8_DISP_W + 1),
-            CELL_H * (CHIP8_DISP_H + 1),
+            CELL_W * (CHIP8_DISP_W),
+            CELL_H * (CHIP8_DISP_H),
         )
         .position_centered()
         .build()

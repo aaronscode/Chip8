@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::{BufReader, ErrorKind};
 
+use clap::{App, Arg, SubCommand};
 use rand;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -272,15 +273,15 @@ impl Chip8 {
         for y in 0..(lit & 0b0000_1111) {
             let spriterow = self.ram[self.registers.i as usize + y as usize];
             for x in 0..8 {
-                let xpos =
-                    (self.registers.vx[vx as usize] as u32 + (7 - x) as u32) as u32 % (CHIP8_DISP_W);
+                let xpos = (self.registers.vx[vx as usize] as u32 + (7 - x) as u32) as u32
+                    % (CHIP8_DISP_W);
                 let ypos = (self.registers.vx[vy as usize] + y) as u32 % (CHIP8_DISP_H);
-                /*
-                println!(
-                    "x: {}, vx: {}, {:#04x}, xpos: {}, ypos: {}",
-                    x, vx, self.registers.vx[vx as usize], xpos, ypos
-                );
-                */
+                if DEBUG {
+                    println!(
+                        "x: {}, vx: {}, {:#04x}, xpos: {}, ypos: {}",
+                        x, vx, self.registers.vx[vx as usize], xpos, ypos
+                    );
+                }
                 let source_bit = (spriterow >> x) & 0b1;
                 let dest_bit = (self.vram[ypos as usize] >> xpos) & 0b1;
                 erased = erased || (source_bit == 1 && dest_bit == 1);
@@ -364,7 +365,6 @@ impl Chip8 {
             self.registers.vx[x as usize] = self.ram[(self.registers.i + x as u16) as usize];
         }
     }
-    
     fn timers_active(&self) -> bool {
         self.registers.dt > 0 || self.registers.st > 0
     }
@@ -634,6 +634,37 @@ impl Chip8 {
 }
 
 pub fn main() {
+    let matches = App::new("Chip-8 Emulator")
+        .about("A Chip-8 Emulator written in Rust")
+        .arg(
+            Arg::with_name("INPUT")
+                .help("The input file. Either a ROM or source file")
+                .required(true)
+                .index(1),
+        )
+        .arg(
+            Arg::with_name("compile")
+                .help("Compile a ROM from an assembly source")
+                .short("c"),
+        )
+        .arg(
+            Arg::with_name("decompile")
+                .conflicts_with("compile")
+                .help("Decompile a ROM to assembly source")
+                .short("d"),
+        )
+        .get_matches();
+    let input = matches.value_of("INPUT").unwrap().to_string();
+    if matches.is_present("compile") {
+        println!("Compile flag");
+        // TODO: call compilation method
+    } else if matches.is_present("decompile") {
+        println!("decompile flag");
+        // TODO: Call decomp method
+    } else {
+        // TODO: refactor emulator
+    }
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -656,7 +687,7 @@ pub fn main() {
     //let mut chip8 = Chip8::new("Roms/Keypad Test [Hap, 2006].ch8".to_string());
     //let mut chip8 = Chip8::new("Roms/chip8-test-rom.ch8".to_string());
     //let mut chip8 = Chip8::new("Roms/Breakout [Carmelo Cortez, 1979].ch8".to_string());
-    let mut chip8 = Chip8::new("Roms/Brix [Andreas Gustafsson, 1990].ch8".to_string());
+    let mut chip8 = Chip8::new(input);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {

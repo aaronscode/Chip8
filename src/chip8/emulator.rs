@@ -26,8 +26,8 @@ pub struct Chip8 {
     vram: [u64; CHIP8_DISP_H as usize],
     stack: [u16; 16],
     keyboard: u16,
-    previous_keyboard: u16,
     draw_flag: bool,
+    input_flag: bool,
 }
 
 impl Chip8 {
@@ -38,8 +38,8 @@ impl Chip8 {
             vram: [0u64; CHIP8_DISP_H as usize],
             stack: [0u16; 16],
             keyboard: 0x00,
-            previous_keyboard: 0x00,
             draw_flag: false,
+            input_flag: false,
         };
 
         // load font into RAM
@@ -69,7 +69,7 @@ impl Chip8 {
     }
 
     pub fn tick(&mut self) {
-        while !self.draw_flag {
+        while !self.draw_flag && !self.input_flag {
             self.instruction_dispatch(
                 self.ram[self.registers.pc as usize],
                 self.ram[(self.registers.pc + 1) as usize],
@@ -89,6 +89,7 @@ impl Chip8 {
             self.registers.st -= 1;
         }
         self.draw_flag = false;
+        self.input_flag = false;
     }
 
     pub fn get_vram_bit(&self, x: usize, y: usize) -> bool {
@@ -286,6 +287,7 @@ impl Chip8 {
             self.registers.vx[vx as usize] = key;
         } else {
             self.registers.pc -= 2;
+            self.input_flag = true;
         }
     }
     fn ld_dt_vx(&mut self, vx: Greg) {

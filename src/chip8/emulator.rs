@@ -7,6 +7,9 @@ use std::fs::File;
 use std::io::Read;
 use std::io::{BufReader, ErrorKind};
 
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+
 type Address = u16;
 type Greg = u8;
 
@@ -431,5 +434,139 @@ impl Chip8 {
                 println!("Unrecognized opcode: {:#x} {:#x}", upper, lower);
             }
         };
+    }
+
+    pub fn handle_key(&mut self, event: Event) {
+        match event {
+            Event::KeyDown {
+                keycode: Some(Keycode::Num1),
+                ..
+            } => self.keydown(0b0000_0000_0000_0010),
+            Event::KeyDown {
+                keycode: Some(Keycode::Num2),
+                ..
+            } => self.keydown(0b0000_0000_0000_0100),
+            Event::KeyDown {
+                keycode: Some(Keycode::Num3),
+                ..
+            } => self.keydown(0b0000_0000_0000_1000),
+            Event::KeyDown {
+                keycode: Some(Keycode::Num4),
+                ..
+            } => self.keydown(0b0001_0000_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::Q),
+                ..
+            } => self.keydown(0b0000_0000_0001_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::W),
+                ..
+            } => self.keydown(0b0000_0000_0010_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::E),
+                ..
+            } => self.keydown(0b0000_0000_0100_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::R),
+                ..
+            } => self.keydown(0b0010_0000_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::A),
+                ..
+            } => self.keydown(0b0000_0000_1000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::S),
+                ..
+            } => self.keydown(0b0000_0001_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::D),
+                ..
+            } => self.keydown(0b0000_0010_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::F),
+                ..
+            } => self.keydown(0b0100_0000_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::Z),
+                ..
+            } => self.keydown(0b0000_0100_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::X),
+                ..
+            } => self.keydown(0b0000_0000_0000_0001),
+            Event::KeyDown {
+                keycode: Some(Keycode::C),
+                ..
+            } => self.keydown(0b0000_1000_0000_0000),
+            Event::KeyDown {
+                keycode: Some(Keycode::V),
+                ..
+            } => self.keydown(0b1000_0000_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::Num1),
+                ..
+            } => self.keyup(0b0000_0000_0000_0010),
+            Event::KeyUp {
+                keycode: Some(Keycode::Num2),
+                ..
+            } => self.keyup(0b0000_0000_0000_0100),
+            Event::KeyUp {
+                keycode: Some(Keycode::Num3),
+                ..
+            } => self.keyup(0b0000_0000_0000_1100),
+            Event::KeyUp {
+                keycode: Some(Keycode::Num4),
+                ..
+            } => self.keyup(0b0001_0000_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::Q),
+                ..
+            } => self.keyup(0b0000_0000_0001_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::W),
+                ..
+            } => self.keyup(0b0000_0000_0010_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::E),
+                ..
+            } => self.keyup(0b0000_0000_0100_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::R),
+                ..
+            } => self.keyup(0b0010_0000_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::A),
+                ..
+            } => self.keyup(0b0000_0000_1000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::S),
+                ..
+            } => self.keyup(0b0000_0001_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::D),
+                ..
+            } => self.keyup(0b0000_0010_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::F),
+                ..
+            } => self.keyup(0b0100_0000_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::Z),
+                ..
+            } => self.keyup(0b0000_0100_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::X),
+                ..
+            } => self.keyup(0b0000_0000_0000_0001),
+            Event::KeyUp {
+                keycode: Some(Keycode::C),
+                ..
+            } => self.keyup(0b0000_1000_0000_0000),
+            Event::KeyUp {
+                keycode: Some(Keycode::V),
+                ..
+            } => self.keyup(0b1000_0000_0000_0000),
+            _ => (),
+        }
     }
 }

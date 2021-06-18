@@ -38,67 +38,64 @@ pub fn main() {
         println!("Compile flag");
         // TODO: call compilation method
     } else if matches.is_present("decompile") {
-        println!("decompile flag");
-        // TODO: Call decomp method
+        println!("{}", decompiler::decompile_rom(input));
     } else {
-        // TODO: refactor emulator
-    }
+        let sdl_context = sdl2::init().unwrap();
+        let video_subsystem = sdl_context.video().unwrap();
 
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+        let window = video_subsystem
+            .window(
+                "Chip-8 Emulator",
+                CELL_W * (CHIP8_DISP_W),
+                CELL_H * (CHIP8_DISP_H),
+            )
+            .position_centered()
+            .build()
+            .unwrap();
 
-    let window = video_subsystem
-        .window(
-            "Chip-8 Emulator",
-            CELL_W * (CHIP8_DISP_W),
-            CELL_H * (CHIP8_DISP_H),
-        )
-        .position_centered()
-        .build()
-        .unwrap();
+        let mut canvas = window.into_canvas().build().unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+        let mut chip8 = emulator::Chip8::new(input);
 
-    let mut chip8 = emulator::Chip8::new(input);
+        let mut event_pump = sdl_context.event_pump().unwrap();
+        'running: loop {
+            println!("Top of loop");
+            chip8.tick();
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    'running: loop {
-        println!("Top of loop");
-        chip8.tick();
+            canvas.set_draw_color(Color::RGB(0, 0, 0));
+            canvas.clear();
+            canvas.set_draw_color(Color::RGB(255, 255, 255));
 
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-        canvas.set_draw_color(Color::RGB(255, 255, 255));
-
-        for x in 0..CHIP8_DISP_W {
-            for y in 0..CHIP8_DISP_H {
-                //println!("{}", vram[y as usize]);
-                if chip8.get_vram_bit(x as usize, y as usize) {
-                    canvas
-                        .fill_rect(Rect::new(
-                            (x * CELL_W).try_into().unwrap(),
-                            (y * CELL_H).try_into().unwrap(),
-                            CELL_W,
-                            CELL_H,
-                        ))
-                        .unwrap();
+            for x in 0..CHIP8_DISP_W {
+                for y in 0..CHIP8_DISP_H {
+                    //println!("{}", vram[y as usize]);
+                    if chip8.get_vram_bit(x as usize, y as usize) {
+                        canvas
+                            .fill_rect(Rect::new(
+                                (x * CELL_W).try_into().unwrap(),
+                                (y * CELL_H).try_into().unwrap(),
+                                CELL_W,
+                                CELL_H,
+                            ))
+                            .unwrap();
+                    }
                 }
             }
-        }
 
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                _ => chip8.handle_key(event),
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => break 'running,
+                    _ => chip8.handle_key(event),
+                }
             }
-        }
-        // The rest of the game loop goes here...
+            // The rest of the game loop goes here...
 
-        canvas.present();
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+            canvas.present();
+            ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+        }
     }
 }

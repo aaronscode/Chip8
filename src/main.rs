@@ -2,7 +2,6 @@ mod chip8;
 
 use chip8::{decompiler, emulator};
 
-
 use clap::{App, Arg};
 
 pub fn main() {
@@ -33,6 +32,6 @@ pub fn main() {
     } else if matches.is_present("decompile") {
         println!("{}", decompiler::decompile_rom(input));
     } else {
-        emulator::Chip8::new(input).run();
+        emulator::Chip8::with_rom(input).run();
     }
 }

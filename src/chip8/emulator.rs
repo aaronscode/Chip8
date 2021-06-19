@@ -1,6 +1,6 @@
 use super::decompiler;
 
-use super::constants::{CELL_H, CELL_W, CHIP8_DISP_H, CHIP8_DISP_W, DEBUG, FONT, RAM_OFFSET, FPS};
+use super::constants::{CELL_H, CELL_W, CHIP8_DISP_H, CHIP8_DISP_W, DEBUG, FONT, FPS, RAM_OFFSET};
 
 use std::convert::TryInto;
 use std::fs::File;
@@ -37,7 +37,26 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-    pub fn new(path: String) -> Chip8 {
+    pub fn with_rom(path: String) -> Chip8 {
+        let mut chip8 = Chip8::new();
+
+        let file = File::open(path).expect("Cannot Read ROM");
+        let mut buf = BufReader::new(file);
+        let mut rom_bytes = [0; (0x1000 - RAM_OFFSET as usize)];
+
+        match buf.read(&mut rom_bytes) {
+            Ok(0) => (println! {"No bytes read from ROM!"}),
+            Ok(n) => {
+                chip8.load_rom(&rom_bytes, n);
+            }
+            Err(ref e) if e.kind() == ErrorKind::Interrupted => (),
+            Err(e) => panic!("{:?}", e),
+        };
+
+        chip8
+    }
+
+    pub fn new() -> Chip8 {
         let mut chip8 = Chip8 {
             registers: Chip8Regs::default(),
             ram: [0u8; 0x1000],
@@ -53,28 +72,19 @@ impl Chip8 {
             chip8.ram[i] = *font_byte;
         }
 
-        let file = File::open(path).expect("Cannot Read ROM");
-        let mut buf = BufReader::new(file);
-        let mut rom_bytes = [0; (0x1000 - RAM_OFFSET as usize)];
-
-        match buf.read(&mut rom_bytes) {
-            Ok(0) => (println! {"No bytes read from ROM!"}),
-            Ok(n) => {
-                for (i, rom_byte) in rom_bytes.iter().enumerate().take(n) {
-                    chip8.ram[RAM_OFFSET as usize + i] = *rom_byte;
-                }
-            }
-            Err(ref e) if e.kind() == ErrorKind::Interrupted => (),
-            Err(e) => panic!("{:?}", e),
-        };
-
         // initialize pointers
         chip8.registers.sp = -1;
         chip8.registers.pc = RAM_OFFSET;
         chip8
     }
 
-    pub fn tick(&mut self) {
+    pub fn load_rom(&mut self, rom_bytes: &[u8], rom_size: usize) {
+        for (i, rom_byte) in rom_bytes.iter().enumerate().take(rom_size) {
+            self.ram[RAM_OFFSET as usize + i] = *rom_byte;
+        }
+    }
+
+    fn tick(&mut self) {
         while !self.draw_flag && !self.input_flag {
             self.instruction_dispatch(
                 self.ram[self.registers.pc as usize],

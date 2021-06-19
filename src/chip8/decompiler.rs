@@ -66,11 +66,13 @@ pub fn decompile_word(upper: u8, lower: u8) -> String {
         (0xf, _, 0x6, 0x5) => decompile_NxNN(n1, n2, n3, n4),
         (_, _, _, _) => {
             let word: u16 = ((upper as u16) << 8) | lower as u16;
-            format!("{:#06x}", word,).to_string()
+            format!("{:#06x}", word,)
         }
     };
     decomp
 }
+
+#[allow(non_snake_case)]
 fn decompile_Nnnn(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let instruction = match n1 {
         0x1 => "JP  ",
@@ -82,6 +84,8 @@ fn decompile_Nnnn(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let address = ((n2 as u16) << 8) | ((n3 as u16) << 4) | n4 as u16;
     format!("{} {:#06x}", instruction, address)
 }
+
+#[allow(non_snake_case)]
 fn decompile_Nxkk(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let instruction = match n1 {
         0x3 => "SE  ",
@@ -95,6 +99,8 @@ fn decompile_Nxkk(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let byte = (n3 << 4) | n4;
     format!("{} v{:01X?},  {:#04x}", instruction, register, byte)
 }
+
+#[allow(non_snake_case)]
 fn decompile_NNNN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     match (n1, n2, n3, n4) {
         (0x0, 0x0, 0xe, 0x0) => "CLS ".to_string(),
@@ -102,6 +108,8 @@ fn decompile_NNNN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
         _ => "Unrecognized".to_string(),
     }
 }
+
+#[allow(non_snake_case)]
 fn decompile_NxyN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let instruction = match (n1, n4) {
         (0x5, 0x0) => "SE  ",
@@ -121,6 +129,8 @@ fn decompile_NxyN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let r2 = n3;
     format!("{} v{:01X?},  v{:01X?}", instruction, r1, r2)
 }
+
+#[allow(non_snake_case)]
 fn decompile_Nxyn(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let instruction = match n1 {
         0xD => "DRW ",
@@ -130,6 +140,8 @@ fn decompile_Nxyn(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let r2 = n3;
     format!("{} v{:01X?},  v{:01X?}, {:#03x}", instruction, r1, r2, n4)
 }
+
+#[allow(non_snake_case)]
 fn decompile_NxNN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     let r1 = n2;
     let instruction = match (n1, n3, n4) {

@@ -2,7 +2,6 @@ use super::decompiler;
 
 use super::constants::{CHIP8_DISP_H, CHIP8_DISP_W, DEBUG, FONT, RAM_OFFSET};
 
-use rand;
 use std::fs::File;
 use std::io::Read;
 use std::io::{BufReader, ErrorKind};
@@ -46,8 +45,8 @@ impl Chip8 {
         };
 
         // load font into RAM
-        for i in 0..80 {
-            chip8.ram[i] = FONT[i];
+        for (i, font_byte) in FONT.iter().enumerate(){
+            chip8.ram[i] = *font_byte;
         }
 
         let file = File::open(path).expect("Cannot Read ROM");
@@ -57,8 +56,8 @@ impl Chip8 {
         match buf.read(&mut rom_bytes) {
             Ok(0) => (println! {"No bytes read from ROM!"}),
             Ok(n) => {
-                for i in 0..n {
-                    chip8.ram[RAM_OFFSET as usize + i] = rom_bytes[i]
+                for (i, rom_byte) in rom_bytes.iter().enumerate().take(n) {
+                    chip8.ram[RAM_OFFSET as usize + i] = *rom_byte;
                 }
             }
             Err(ref e) if e.kind() == ErrorKind::Interrupted => (),
@@ -214,7 +213,7 @@ impl Chip8 {
             self.registers.vx[vy as usize] - self.registers.vx[vx as usize];
     }
     fn shl(&mut self, vx: Greg) {
-        if (self.registers.vx[vx as usize] & 0b1000_0000) == 1 {
+        if (self.registers.vx[vx as usize] & 0b1000_0000) == 0b1000_0000 {
             self.registers.vx[0xfusize] = 1;
         } else {
             self.registers.vx[0xfusize] = 0;
@@ -303,12 +302,12 @@ impl Chip8 {
         self.registers.i += self.registers.vx[vx as usize] as u16;
     }
     fn ld_f(&mut self, vx: Greg) {
-        self.registers.i = 0x000 + 5 * (self.registers.vx[vx as usize] as u16);
+        self.registers.i = 5 * (self.registers.vx[vx as usize] as u16);
     }
     fn ld_b(&mut self, vx: Greg) {
         self.ram[(self.registers.i) as usize] = (self.registers.vx[vx as usize] / 100) % 10;
         self.ram[(self.registers.i + 1) as usize] = (self.registers.vx[vx as usize] / 10) % 10;
-        self.ram[(self.registers.i + 2) as usize] = (self.registers.vx[vx as usize] / 1) % 10;
+        self.ram[(self.registers.i + 2) as usize] = self.registers.vx[vx as usize] % 10;
     }
     // store registers v0-vx in memory starting at address I
     fn ld_s(&mut self, vx: Greg) {

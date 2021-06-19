@@ -1,13 +1,17 @@
 use super::decompiler;
 
-use super::constants::{CHIP8_DISP_H, CHIP8_DISP_W, DEBUG, FONT, RAM_OFFSET};
+use super::constants::{CELL_H, CELL_W, CHIP8_DISP_H, CHIP8_DISP_W, DEBUG, FONT, RAM_OFFSET, FPS};
 
+use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::io::{BufReader, ErrorKind};
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use sdl2::rect::Rect;
+use std::time::Duration;
 
 type Address = u16;
 type Greg = u8;
@@ -45,7 +49,7 @@ impl Chip8 {
         };
 
         // load font into RAM
-        for (i, font_byte) in FONT.iter().enumerate(){
+        for (i, font_byte) in FONT.iter().enumerate() {
             chip8.ram[i] = *font_byte;
         }
 
@@ -92,6 +96,63 @@ impl Chip8 {
         }
         self.draw_flag = false;
         self.input_flag = false;
+    }
+
+    pub fn run(&mut self) {
+        let sdl_context = sdl2::init().unwrap();
+        let video_subsystem = sdl_context.video().unwrap();
+
+        let window = video_subsystem
+            .window(
+                "Chip-8 Emulator",
+                CELL_W * (CHIP8_DISP_W),
+                CELL_H * (CHIP8_DISP_H),
+            )
+            .position_centered()
+            .build()
+            .unwrap();
+
+        let mut canvas = window.into_canvas().build().unwrap();
+
+        let mut event_pump = sdl_context.event_pump().unwrap();
+        'running: loop {
+            println!("Top of loop");
+            self.tick();
+
+            canvas.set_draw_color(Color::RGB(0, 0, 0));
+            canvas.clear();
+            canvas.set_draw_color(Color::RGB(255, 255, 255));
+
+            for x in 0..CHIP8_DISP_W {
+                for y in 0..CHIP8_DISP_H {
+                    //println!("{}", vram[y as usize]);
+                    if self.get_vram_bit(x as usize, y as usize) {
+                        canvas
+                            .fill_rect(Rect::new(
+                                (x * CELL_W).try_into().unwrap(),
+                                (y * CELL_H).try_into().unwrap(),
+                                CELL_W,
+                                CELL_H,
+                            ))
+                            .unwrap();
+                    }
+                }
+            }
+
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => break 'running,
+                    _ => self.handle_key(event),
+                }
+            }
+
+            canvas.present();
+            ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+        }
     }
 
     pub fn get_vram_bit(&self, x: usize, y: usize) -> bool {

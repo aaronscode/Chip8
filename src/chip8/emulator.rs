@@ -85,27 +85,26 @@ impl Chip8 {
     }
 
     fn tick(&mut self) {
-        while !self.draw_flag && !self.input_flag {
-            self.instruction_dispatch(
-                self.ram[self.registers.pc as usize],
-                self.ram[(self.registers.pc + 1) as usize],
-            );
-            self.registers.pc += 2;
-            if self.registers.pc >= 0x0fff {
-                self.registers.pc = 0x0200;
-            }
-            if self.timers_active() {
-                break;
-            }
+        self.instruction_dispatch(
+            self.ram[self.registers.pc as usize],
+            self.ram[(self.registers.pc + 1) as usize],
+        );
+
+        self.registers.pc += 2;
+        if self.registers.pc >= 0x0fff {
+            self.registers.pc = 0x0200;
         }
+
+    }
+    
+    fn update_timers(&mut self) {
         if self.registers.dt > 0 {
             self.registers.dt -= 1;
         }
+
         if self.registers.st > 0 {
             self.registers.st -= 1;
         }
-        self.draw_flag = false;
-        self.input_flag = false;
     }
 
     pub fn run(&mut self) {
@@ -126,28 +125,7 @@ impl Chip8 {
 
         let mut event_pump = sdl_context.event_pump().unwrap();
         'running: loop {
-            println!("Top of loop");
             self.tick();
-
-            canvas.set_draw_color(Color::RGB(0, 0, 0));
-            canvas.clear();
-            canvas.set_draw_color(Color::RGB(255, 255, 255));
-
-            for x in 0..CHIP8_DISP_W {
-                for y in 0..CHIP8_DISP_H {
-                    //println!("{}", vram[y as usize]);
-                    if self.get_vram_bit(x as usize, y as usize) {
-                        canvas
-                            .fill_rect(Rect::new(
-                                (x * CELL_W).try_into().unwrap(),
-                                (y * CELL_H).try_into().unwrap(),
-                                CELL_W,
-                                CELL_H,
-                            ))
-                            .unwrap();
-                    }
-                }
-            }
 
             for event in event_pump.poll_iter() {
                 match event {
@@ -160,8 +138,31 @@ impl Chip8 {
                 }
             }
 
-            canvas.present();
-            ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+            if self.draw_flag {
+                canvas.set_draw_color(Color::RGB(0, 0, 0));
+                canvas.clear();
+                canvas.set_draw_color(Color::RGB(255, 255, 255));
+
+                for x in 0..CHIP8_DISP_W {
+                    for y in 0..CHIP8_DISP_H {
+                        //println!("{}", vram[y as usize]);
+                        if self.get_vram_bit(x as usize, y as usize) {
+                            canvas
+                                .fill_rect(Rect::new(
+                                    (x * CELL_W).try_into().unwrap(),
+                                    (y * CELL_H).try_into().unwrap(),
+                                    CELL_W,
+                                    CELL_H,
+                                ))
+                                .unwrap();
+                        }
+                    }
+                }
+
+                canvas.present();
+            }
+            ::std::thread::sleep(Duration::from_nanos(1_000_000_000u64 / FPS));
+            self.update_timers(); // TODO make this relaint on FPS, not just ticking down by 1 every cycle
         }
     }
 

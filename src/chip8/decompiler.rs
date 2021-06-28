@@ -30,40 +30,36 @@ pub fn decompile_word(upper: u8, lower: u8) -> String {
     let n3 = (lower & 0b1111_0000) >> 4;
     let n4 = lower & 0b0000_1111;
     let decomp = match (n1, n2, n3, n4) {
-        (0x0, 0x0, 0xe, 0x0) => decompile_NNNN(n1, n2, n3, n4),
-        (0x0, 0x0, 0xe, 0xe) => decompile_NNNN(n1, n2, n3, n4),
-        (0x1, _, _, _) => decompile_Nnnn(n1, n2, n3, n4),
-        (0x2, _, _, _) => decompile_Nnnn(n1, n2, n3, n4),
-        (0x3, _, _, _) => decompile_Nxkk(n1, n2, n3, n4),
-        (0x4, _, _, _) => decompile_Nxkk(n1, n2, n3, n4),
-        (0x5, _, _, 0x0) => decompile_NxyN(n1, n2, n3, n4),
-        (0x6, _, _, _) => decompile_Nxkk(n1, n2, n3, n4),
-        (0x7, _, _, _) => decompile_Nxkk(n1, n2, n3, n4),
-        (0x8, _, _, 0x0) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x1) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x2) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x3) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x4) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x5) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x6) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0x7) => decompile_NxyN(n1, n2, n3, n4),
-        (0x8, _, _, 0xe) => decompile_NxyN(n1, n2, n3, n4),
-        (0x9, _, _, 0x0) => decompile_NxyN(n1, n2, n3, n4),
-        (0xa, _, _, _) => decompile_Nnnn(n1, n2, n3, n4),
-        (0xb, _, _, _) => decompile_Nnnn(n1, n2, n3, n4),
-        (0xc, _, _, _) => decompile_Nxkk(n1, n2, n3, n4),
+        (0x0, 0x0, 0xe, 0x0) | (0x0, 0x0, 0xe, 0xe) => decompile_NNNN(n1, n2, n3, n4),
+        (0x1, _, _, _) | (0x2, _, _, _) | (0xa, _, _, _) | (0x_b, _, _, _) => {
+            decompile_Nnnn(n1, n2, n3, n4)
+        }
+        (0x3, _, _, _) | (0x4, _, _, _) | (0x6, _, _, _) | (0x7, _, _, _) | (0xc, _, _, _) => {
+            decompile_Nxkk(n1, n2, n3, n4)
+        }
+        (0x5, _, _, 0x0)
+        | (0x8, _, _, 0x0)
+        | (0x8, _, _, 0x1)
+        | (0x8, _, _, 0x2)
+        | (0x8, _, _, 0x3)
+        | (0x8, _, _, 0x4)
+        | (0x8, _, _, 0x5)
+        | (0x8, _, _, 0x6)
+        | (0x8, _, _, 0x7)
+        | (0x8, _, _, 0xe)
+        | (0x9, _, _, 0x0) => decompile_NxyN(n1, n2, n3, n4),
         (0xd, _, _, _) => decompile_Nxyn(n1, n2, n3, n4),
-        (0xe, _, 0x9, 0xe) => decompile_NxNN(n1, n2, n3, n4),
-        (0xe, _, 0xa, 0x1) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x0, 0x7) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x0, 0xa) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x1, 0x5) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x1, 0x8) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x1, 0xe) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x2, 0x9) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x3, 0x3) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x5, 0x5) => decompile_NxNN(n1, n2, n3, n4),
-        (0xf, _, 0x6, 0x5) => decompile_NxNN(n1, n2, n3, n4),
+        (0xe, _, 0x9, 0xe)
+        | (0xe, _, 0xa, 0x1)
+        | (0xf, _, 0x0, 0x7)
+        | (0xf, _, 0x0, 0xa)
+        | (0xf, _, 0x1, 0x5)
+        | (0xf, _, 0x1, 0x8)
+        | (0xf, _, 0x1, 0xe)
+        | (0xf, _, 0x2, 0x9)
+        | (0xf, _, 0x3, 0x3)
+        | (0xf, _, 0x5, 0x5)
+        | (0xf, _, 0x6, 0x5) => decompile_NxNN(n1, n2, n3, n4),
         (_, _, _, _) => {
             let word: u16 = ((upper as u16) << 8) | lower as u16;
             format!("{:#06x}", word,)

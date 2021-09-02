@@ -156,3 +156,81 @@ fn decompile_NxNN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     };
     instruction
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_decompile_Nnnn() {
+        assert_eq!(decompile_Nnnn(0x1, 0x2, 0x3, 0x4), "JP   0x0234".to_owned());
+        assert_eq!(decompile_Nnnn(0x2, 0x2, 0x3, 0x4), "CALL 0x0234".to_owned());
+        assert_eq!(
+            decompile_Nnnn(0xa, 0x2, 0x3, 0x4),
+            "LD   I,   0x0234".to_owned()
+        );
+        assert_eq!(
+            decompile_Nnnn(0xb, 0x2, 0x3, 0x4),
+            "JP   V0,  0x0234".to_owned()
+        );
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_decompile_Nxkk() {
+        assert_eq!(decompile_Nxkk(0x3, 0x4, 0x5, 0x6), "SE   v4,  0x56");
+    }
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_decompile_NNNN() {}
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_decompile_NxyN() {}
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_decompile_Nxyn() {}
+
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_decompile_NxNN() {
+        assert_eq!(decompile_NxNN(0xE, 0x2, 0x9, 0xE), "SKP  v2".to_owned());
+        assert_eq!(decompile_NxNN(0xE, 0xA, 0xA, 0x1), "SKNP vA".to_owned());
+        assert_eq!(
+            decompile_NxNN(0xF, 0x8, 0x0, 0x7),
+            "LD   v8,  DT".to_owned()
+        );
+        assert_eq!(decompile_NxNN(0xF, 0x7, 0x0, 0xA), "LD   v7,  K".to_owned());
+        assert_eq!(
+            decompile_NxNN(0xF, 0x0, 0x1, 0x5),
+            "LD   DT,  v0".to_owned()
+        );
+        assert_eq!(
+            decompile_NxNN(0xF, 0x4, 0x1, 0x8),
+            "LD   ST,  v4".to_owned()
+        );
+        assert_eq!(
+            decompile_NxNN(0xF, 0x2, 0x1, 0xE),
+            "ADD  I,   v2".to_owned()
+        );
+        assert_eq!(
+            decompile_NxNN(0xF, 0x2, 0x2, 0x9),
+            "LD   F,   v2".to_owned()
+        );
+        assert_eq!(
+            decompile_NxNN(0xF, 0x2, 0x3, 0x3),
+            "LD   B,   v2".to_owned()
+        );
+        assert_eq!(
+            decompile_NxNN(0xF, 0x2, 0x5, 0x5),
+            "LD   [I], v2".to_owned()
+        );
+        assert_eq!(
+            decompile_NxNN(0xF, 0x2, 0x6, 0x5),
+            "LD   v2,  [I]".to_owned()
+        );
+    }
+}

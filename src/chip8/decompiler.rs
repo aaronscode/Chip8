@@ -93,7 +93,7 @@ fn decompile_Nxkk(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     };
     let register = n2;
     let byte = (n3 << 4) | n4;
-    if (instruction != "Unrecognized") {
+    if instruction != "Unrecognized" {
         format!("{} v{:01X?},  {:#04x}", instruction, register, byte)
     } else {
         instruction.to_owned()
@@ -127,7 +127,11 @@ fn decompile_NxyN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     };
     let r1 = n2;
     let r2 = n3;
-    format!("{} v{:01X?},  v{:01X?}", instruction, r1, r2)
+    if instruction != "Unrecognized" {
+        format!("{} v{:01X?},  v{:01X?}", instruction, r1, r2)
+    } else {
+        instruction.to_owned()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -201,7 +205,20 @@ mod tests {
 
     #[allow(non_snake_case)]
     #[test]
-    fn test_decompile_NxyN() {}
+    fn test_decompile_NxyN() {
+        assert_eq!(decompile_NxyN(0x5, 0x0, 0xE, 0x0), "SE   v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x0), "LD   v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x1), "OR   v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x2), "AND  v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x3), "XOR  v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x4), "ADD  v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x5), "SUB  v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x6), "SHR  v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0x7), "SUBN v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0xE), "SHL  v0,  vE");
+        assert_eq!(decompile_NxyN(0x9, 0x0, 0xE, 0x0), "SNE  v0,  vE");
+        assert_eq!(decompile_NxyN(0x8, 0x0, 0xE, 0xF), "Unrecognized");
+    }
 
     #[allow(non_snake_case)]
     #[test]

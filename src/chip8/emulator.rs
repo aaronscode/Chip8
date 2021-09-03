@@ -94,9 +94,7 @@ impl Chip8 {
         if self.registers.pc >= 0x0fff {
             self.registers.pc = 0x0200;
         }
-
     }
-    
     fn update_timers(&mut self) {
         if self.registers.dt > 0 {
             self.registers.dt -= 1;
@@ -194,6 +192,7 @@ impl Chip8 {
 
     // absolute jump
     fn jp(&mut self, addr: Address) {
+        // set to addr - 2 because after every instruction we pc += 2
         self.registers.pc = addr - 2;
     }
 
@@ -639,5 +638,40 @@ impl Chip8 {
             } => self.keyup(0b1000_0000_0000_0000),
             _ => (),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cls() {
+        let mut test_chip = Chip8::new();
+        test_chip.vram = [42u64; CHIP8_DISP_H as usize];
+        test_chip.cls();
+        assert_eq!(test_chip.vram, [0u64; CHIP8_DISP_H as usize]);
+    }
+
+    #[test]
+    fn test_ret() {
+        let mut test_chip = Chip8::new();
+        test_chip.registers.sp = 0;
+        test_chip.stack[test_chip.registers.sp as usize] = 0x22;
+        test_chip.ret();
+        assert_eq!(test_chip.registers.sp, -1);
+        assert_eq!(test_chip.registers.pc, 0x22);
+    }
+
+    #[test]
+    fn test_jp() {
+        let mut test_chip = Chip8::new();
+        test_chip.jp(0x16);
+        assert_eq!(test_chip.registers.pc, 0x14);
+    }
+
+    #[test]
+    fn test_call() {
+        let mut test_chip = Chip8::new();
     }
 }

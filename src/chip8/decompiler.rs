@@ -103,8 +103,8 @@ fn decompile_Nxkk(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
 #[allow(non_snake_case)]
 fn decompile_NNNN(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     match (n1, n2, n3, n4) {
-        (0x0, 0x0, 0xe, 0x0) => "CLS ".to_string(),
-        (0x0, 0x0, 0xe, 0xe) => "RET ".to_string(),
+        (0x0, 0x0, 0xe, 0x0) => "CLS".to_string(),
+        (0x0, 0x0, 0xe, 0xe) => "RET".to_string(),
         _ => "Unrecognized".to_string(),
     }
 }
@@ -193,7 +193,11 @@ mod tests {
 
     #[allow(non_snake_case)]
     #[test]
-    fn test_decompile_NNNN() {}
+    fn test_decompile_NNNN() {
+        assert_eq!(decompile_NNNN(0x0, 0x0, 0xE, 0x0), "CLS");
+        assert_eq!(decompile_NNNN(0x0, 0x0, 0xE, 0xE), "RET");
+        assert_eq!(decompile_Nxkk(0xA, 0x4, 0x5, 0x6), "Unrecognized");
+    }
 
     #[allow(non_snake_case)]
     #[test]

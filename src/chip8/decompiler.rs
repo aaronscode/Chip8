@@ -142,7 +142,11 @@ fn decompile_Nxyn(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     };
     let r1 = n2;
     let r2 = n3;
-    format!("{} v{:01X?},  v{:01X?}, {:#03x}", instruction, r1, r2, n4)
+    if instruction != "Unrecognized" {
+        format!("{} v{:01X?},  v{:01X?}, {:#03x}", instruction, r1, r2, n4)
+    } else {
+        instruction.to_owned()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -222,7 +226,10 @@ mod tests {
 
     #[allow(non_snake_case)]
     #[test]
-    fn test_decompile_Nxyn() {}
+    fn test_decompile_Nxyn() {
+        assert_eq!(decompile_Nxyn(0xD, 0x0, 0xE, 0x3), "DRW  v0,  vE, 0x3");
+        assert_eq!(decompile_NxyN(0xE, 0x0, 0xE, 0xF), "Unrecognized");
+    }
 
     #[allow(non_snake_case)]
     #[test]

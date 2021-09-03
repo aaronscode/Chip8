@@ -93,7 +93,11 @@ fn decompile_Nxkk(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
     };
     let register = n2;
     let byte = (n3 << 4) | n4;
-    format!("{} v{:01X?},  {:#04x}", instruction, register, byte)
+    if (instruction != "Unrecognized") {
+        format!("{} v{:01X?},  {:#04x}", instruction, register, byte)
+    } else {
+        instruction.to_owned()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -180,6 +184,11 @@ mod tests {
     #[test]
     fn test_decompile_Nxkk() {
         assert_eq!(decompile_Nxkk(0x3, 0x4, 0x5, 0x6), "SE   v4,  0x56");
+        assert_eq!(decompile_Nxkk(0x4, 0x4, 0x5, 0x6), "SNE  v4,  0x56");
+        assert_eq!(decompile_Nxkk(0x6, 0x4, 0x5, 0x6), "LD   v4,  0x56");
+        assert_eq!(decompile_Nxkk(0x7, 0x4, 0x5, 0x6), "ADD  v4,  0x56");
+        assert_eq!(decompile_Nxkk(0xC, 0x4, 0x5, 0x6), "RND  v4,  0x56");
+        assert_eq!(decompile_Nxkk(0xA, 0x4, 0x5, 0x6), "Unrecognized");
     }
 
     #[allow(non_snake_case)]

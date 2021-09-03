@@ -673,5 +673,48 @@ mod tests {
     #[test]
     fn test_call() {
         let mut test_chip = Chip8::new();
+        test_chip.registers.pc = 0x12;
+        test_chip.call(0x29);
+        assert_eq!(test_chip.registers.sp, 0);
+        assert_eq!(test_chip.stack[test_chip.registers.sp as usize], 0x12);
+        assert_eq!(test_chip.registers.pc, 0x27);
+    }
+
+    #[test]
+    fn test_se_byte() {
+        let mut test_chip = Chip8::new();
+        test_chip.registers.vx[0x2] = 0x3;
+        test_chip.se_byte(0x2, 0x3);
+        assert_eq!(test_chip.registers.pc, RAM_OFFSET + 0x2);
+
+        let mut test_chip = Chip8::new();
+        test_chip.registers.vx[0x2] = 0x3;
+        test_chip.se_byte(0x2, 0x4);
+        assert_eq!(test_chip.registers.pc, RAM_OFFSET + 0x0);
+    }
+
+    #[test]
+    fn test_sne_byte() {
+        let mut test_chip = Chip8::new();
+        test_chip.registers.vx[0x2] = 0x3;
+        test_chip.sne_byte(0x2, 0x3);
+        assert_eq!(test_chip.registers.pc, RAM_OFFSET + 0x0);
+
+        let mut test_chip = Chip8::new();
+        test_chip.registers.vx[0x2] = 0x3;
+        test_chip.sne_byte(0x2, 0x4);
+        assert_eq!(test_chip.registers.pc, RAM_OFFSET + 0x2);
+    }
+
+    #[test]
+    fn test_se_reg() {
+        let mut test_chip = Chip8::new();
+        assert_eq!(0, 0);
+    }
+
+    #[test]
+    fn test_sne_reg() {
+        let mut test_chip = Chip8::new();
+        assert_eq!(0, 0);
     }
 }

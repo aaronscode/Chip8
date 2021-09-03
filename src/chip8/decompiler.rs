@@ -78,7 +78,11 @@ fn decompile_Nnnn(n1: u8, n2: u8, n3: u8, n4: u8) -> String {
         _ => "Unrecognized",
     };
     let address = ((n2 as u16) << 8) | ((n3 as u16) << 4) | n4 as u16;
-    format!("{} {:#06x}", instruction, address)
+    if instruction != "Unrecognized" {
+        format!("{} {:#06x}", instruction, address)
+    } else {
+        instruction.to_owned()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -186,6 +190,7 @@ mod tests {
             decompile_Nnnn(0xb, 0x2, 0x3, 0x4),
             "JP   V0,  0x0234".to_owned()
         );
+        assert_eq!(decompile_Nxkk(0xA, 0x4, 0x5, 0x6), "Unrecognized");
     }
 
     #[allow(non_snake_case)]
@@ -269,5 +274,6 @@ mod tests {
             decompile_NxNN(0xF, 0x2, 0x6, 0x5),
             "LD   v2,  [I]".to_owned()
         );
+        assert_eq!(decompile_NxyN(0xF, 0x0, 0x6, 0x6), "Unrecognized");
     }
 }
